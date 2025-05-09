@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Punto aleatorio en el mapa</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #f8f9fa; }
+    #map { height: 90vh; width: 100%; }
+    #controls {
+      padding: 10px;
+      background: #343a40;
+      color: white;
+    }
+    #controls input, #controls button {
+      margin-left: 10px;
+      padding: 5px;
+      border-radius: 4px;
+      border: none;
+    }
+    #controls button {
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    #controls button:hover {
+      background: #0056b3;
+    }
+    #coordenadas {
+      margin-top: 5px;
+      display: block;
+    }
+    a {
+      color: #ffc107;
+    }
+  </style>
+</head>
+<body>
+
+<div id="controls">
+  <label>Distancia en km:
+    <input type="number" id="radio" value="5" min="0.1" step="0.1">
+  </label>
+  <button onclick="generarPunto()">Generar punto aleatorio</button>
+  <span id="coordenadas"></span>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  let mapa = L.map('map').setView([-27.4833, -58.9333], 13); // Barranqueras, Chaco
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(mapa);
+
+  let puntoBase = null;
+  let marcadorBase = null;
+  let marcadorAleatorio = null;
+
+  mapa.on('click', function(e) {
+    puntoBase = e.latlng;
+    if (marcadorBase) marcadorBase.remove();
+    marcadorBase = L.marker(puntoBase).addTo(mapa).bindPopup("Punto base").openPopup();
+  });
+
+  function generarPunto() {
+    if (!puntoBase) {
+      alert("Hacé clic en el mapa para seleccionar un punto base.");
+      return;
+    }
+
+    let radioKm = parseFloat(document.getElementById('radio').value);
+    let R = 6371;
+
+    let distanciaAleatoria = Math.random() * radioKm / R;
+    let angulo = Math.random() * 2 * Math.PI;
+
+    let lat1 = puntoBase.lat * Math.PI / 180;
+    let lon1 = puntoBase.lng * Math.PI / 180;
+
+    let lat2 = Math.asin(Math.sin(lat1) * Math.cos(distanciaAleatoria) +
+                         Math.cos(lat1) * Math.sin(distanciaAleatoria) * Math.cos(angulo));
+    let lon2 = lon1 + Math.atan2(Math.sin(angulo) * Math.sin(distanciaAleatoria) * Math.cos(lat1),
+                                 Math.cos(distanciaAleatoria) - Math.sin(lat1) * Math.sin(lat2));
+
+    let latFinal = lat2 * 180 / Math.PI;
+    let lonFinal = lon2 * 180 / Math.PI;
+
+    let enlaceMaps = `https://www.google.com/maps?q=${latFinal},${lonFinal}`;
+
+    if (marcadorAleatorio) marcadorAleatorio.remove();
+    marcadorAleatorio = L.marker([latFinal, lonFinal])
+      .addTo(mapa)
+      .bindPopup(`Punto aleatorio:<br>${latFinal.toFixed(5)}, ${lonFinal.toFixed(5)}<br><a href="${enlaceMaps}" target="_blank">Ver en Google Maps</a>`)
+      .openPopup();
+
+    document.getElementById("coordenadas").innerHTML = `📍 Coordenadas generadas: ${latFinal.toFixed(5)}, ${lonFinal.toFixed(5)}<br><a href="${enlaceMaps}" target="_blank">➡️ Ver en Google Maps</a>`;
+  }
+</script>
+
+</body>
+</html>
